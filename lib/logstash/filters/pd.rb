@@ -74,7 +74,7 @@ class LogStash::Filters::PD < LogStash::Filters::Base
     msg_uuid = SecureRandom.uuid.force_encoding(Encoding::UTF_8)
     event.set("uuid", msg_uuid)
 
-    log_to_seal = event.to_json
+    log_to_seal = Hash[event.to_hash.sort_by{ |k, v| k.to_s}].to_json
     hash_content = Digest::SHA256.hexdigest(log_to_seal)
 
     uri = URI.parse(endpoint + "register")
@@ -91,6 +91,7 @@ class LogStash::Filters::PD < LogStash::Filters::Base
     response = https.request(request)
 
     entity_id = response.body
+    event.set("hash", hash_content)
     event.set("entityid", entity_id)
 
     filter_matched(event)
