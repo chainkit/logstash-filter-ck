@@ -9,21 +9,22 @@ require "securerandom"
 require "time"
 require "uri"
 
-# The pd filter allows you to generate a tamper-free
+# The ck filter allows you to generate a tamper-free
 # protection for the event.
 #
-class LogStash::Filters::PD < LogStash::Filters::Base
-  config_name "pd"
+class LogStash::Filters::CK < LogStash::Filters::Base
+  # The config name
+  config_name "ck"
 
   # The endpoint
-  config :endpoint, :validate => :string, :required => true, :default => "https://api.pencildata.com/"
+  config :endpoint, :validate => :string, :required => true, :default => "https://api.chainkit.com/"
 
   # The user, password for token
   config :username, :validate => :string, :required => false, :default => nil
   config :password, :validate => :string, :required => false, :default => nil
 
   # The storage
-  config :storage, :validate => :string, :required => true, :default => "public"
+  config :storage, :validate => :string, :required => true, :default => "private"
 
   # The token
   config :authtoken, :validate => :string, :required => false, :default => nil
@@ -74,21 +75,26 @@ class LogStash::Filters::PD < LogStash::Filters::Base
     msg_uuid = SecureRandom.uuid.force_encoding(Encoding::UTF_8)
     event.set("uuid", msg_uuid)
 
-    log_to_seal = Hash[event.to_hash.sort_by{ |k, v| k.to_s}].to_json
+    log_to_seal = Hash[event.to_hash.sort_by{ |k, v| k.to_s}]
+    log_to_seal = log_to_seal.to_json
     hash_content = Digest::SHA256.hexdigest(log_to_seal)
 
     uri = URI.parse(endpoint + "register")
     https = Net::HTTP.new(uri.host, uri.port)
-    https.use_ssl = true
+    https.use_ssl = (uri.scheme == "https")
     # https.set_debug_output($stdout)
 
     curtoken = get_token
     params  = { 'hash': hash_content, 'description': "Sealed Log Message #{msg_uuid}", 'storage': storage }
-    headers = { 'Content-Type' => 'application/json', 'Authorization' => "Bearer \"#{curtoken}\"" }
+    headers = { 'Content-Type' => 'application/json', 'Authorization' => "Bearer #{curtoken}" }
     request = Net::HTTP::Post.new(uri.path, initheader = headers)
 
     request.body = params.to_json
     response = https.request(request)
+
+    if response.code.to_i != 200
+        raise 'Service Error.'
+    end
 
     entity_id = response.body
     event.set("hash", hash_content)
@@ -97,5 +103,4 @@ class LogStash::Filters::PD < LogStash::Filters::Base
     filter_matched(event)
   end # def filter
 
-end # class LogStash::Filters::PD
-
+end # class LogStash::Filters::CK

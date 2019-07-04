@@ -1,4 +1,4 @@
-:plugin: pd
+:plugin: ck
 :type: filter
 
 ///////////////////////////////////////////
@@ -14,49 +14,56 @@ END - GENERATED VARIABLES, DO NOT EDIT!
 
 [id="plugins-{type}s-{plugin}"]
 
-=== PD filter plugin
+=== CK filter plugin
 
 include::{include_path}/plugin_header.asciidoc[]
 
 ==== Description
 
-The pd filter allows you to generate a non tamperable seal
+The ck filter allows you to generate a non tamperable seal
 to each processed event. It first generates a UUID, see 
 https://en.wikipedia.org/wiki/Universally_unique_identifier[UUID]
 and then concatenates the message, hashes it, and register this
 UUID+Hash to the user specified blockchain. Then, we add the assetId
 back to message and send it out as a processed event.
 
-This way, an event is condered to be untampered. Ideally, this must be
+This way, an event is considered to be untampered. Ideally, this must be
 the first filter that an event should go through, in order to
 preserve the message's authenticity.
 
+The ckverify filter allows you to verify if a message was
+tampered with. It generates a verified field based on
+successful verification.
+
 [id="plugins-{type}s-{plugin}-options"]
 
-==== PD Filter Configuration Options
+==== CK Filter Configuration Options
 
 This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
 [cols="<,<,<",options="header",]
 |=======================================================================
-|Setting |Input type|Required|Default
-| <<plugins-{type}s-{plugin}-username>> |<<string,string>>|No|nil
-| <<plugins-{type}s-{plugin}-password>> |<<string,string>>|No|nil
-| <<plugins-{type}s-{plugin}-authtoken>> |<<string,string>>|No|nil
-| <<plugins-{type}s-{plugin}-endpoint>> |<<string,string>>|No|https://api.pencildata.com
-| <<plugins-{type}s-{plugin}-storage>> |<<string,string>>|No|public
+|Setting|Input type|Default
+| <<plugins-{type}s-{plugin}-username>> | <<string,string>> | nil
+| <<plugins-{type}s-{plugin}-password>> | <<string,string>> | nil
+| <<plugins-{type}s-{plugin}-authtoken>> | <<string,string>> | nil
+| <<plugins-{type}s-{plugin}-endpoint>> | <<string,string>> | https://api.chainkit.com
+| <<plugins-{type}s-{plugin}-storage>> | <<string,string>> | private
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
 filter plugins.
 
-We suggest you keep the storage as "public".
+We suggest you keep the storage as "private".
 
 Example:
 [source,ruby]
     filter {
-      pd {
-        username => "demo1", password => "Test@12345678", storage => "private"
+      ck {
+        username => "secureUser", password => "changeMe"
+      }
+      ckverify {
+        username => "secureUser", password => "changeMe"
       }
     }
 
