@@ -24,7 +24,7 @@ class LogStash::Filters::CK < LogStash::Filters::Base
   config :password, :validate => :string, :required => false, :default => nil
 
   # The storage
-  config :storage, :validate => :string, :required => true, :default => "private"
+  config :storage, :validate => :string, :required => true, :default => "vmware"
 
   # The token
   config :authtoken, :validate => :string, :required => false, :default => nil
@@ -70,22 +70,39 @@ class LogStash::Filters::CK < LogStash::Filters::Base
      get_token
   end # def register
 
+  private
+  def hash_event(event)
+    if event.get("uuid").nil?
+      msg_uuid = SecureRandom.uuid.force_encoding(Encoding::UTF_8)
+      event.set("uuid", msg_uuid)
+    end
+    sorted_event = Hash[event.to_hash.sort_by{ |k, v| k.to_s}]
+    sorted_event.delete("hash")
+    sorted_event.delete("entityid")
+    sorted_event.delete("verified")
+    return Digest::SHA256.hexdigest(sorted_event.to_json)
+  end # hash_event
+
   public
-  def filter(event)
-    msg_uuid = SecureRandom.uuid.force_encoding(Encoding::UTF_8)
-    event.set("uuid", msg_uuid)
+  def multi_filter(events)
+    if events.nil? || events.empty?
+      return events
+    end
 
-    log_to_seal = Hash[event.to_hash.sort_by{ |k, v| k.to_s}]
-    log_to_seal = log_to_seal.to_json
-    hash_content = Digest::SHA256.hexdigest(log_to_seal)
+    hash_contents = {}
+    events.each do |event|
+      hash_content = hash_event(event)
+      hash_contents[hash_content] = event
+    end
+    sorted_hash_keys = hash_contents.keys.sort
 
-    uri = URI.parse(endpoint + "register")
+    uri = URI.parse(endpoint + "bulkRegister")
     https = Net::HTTP.new(uri.host, uri.port)
     https.use_ssl = (uri.scheme == "https")
     # https.set_debug_output($stdout)
 
     curtoken = get_token
-    params  = { 'hash': hash_content, 'description': "Sealed Log Message #{msg_uuid}", 'storage': storage }
+    params  = { 'assets': sorted_hash_keys, 'storage': storage }
     headers = { 'Content-Type' => 'application/json', 'Authorization' => "Bearer #{curtoken}" }
     request = Net::HTTP::Post.new(uri.path, initheader = headers)
 
@@ -94,6 +111,47 @@ class LogStash::Filters::CK < LogStash::Filters::Base
 
     if response.code.to_i != 200
         raise 'Service Error.'
+    end
+    if response.body.nil?
+        raise 'Response Body is nil.'
+    end
+
+    sorted_entity_ids = response.body.rstrip!.split(' ')
+
+    result = []
+    sorted_hash_keys.zip(sorted_entity_ids).each do |hash, entity_id|
+      event = hash_contents[hash]
+      event.set("hash", hash)
+      event.set("entityid", entity_id)
+      filter_matched(event)
+      result << event
+    end
+
+    result
+  end # def multi_filter
+
+  public
+  def filter(event)
+    hash_content = hash_event(event)
+
+    uri = URI.parse(endpoint + "register")
+    https = Net::HTTP.new(uri.host, uri.port)
+    https.use_ssl = (uri.scheme == "https")
+    # https.set_debug_output($stdout)
+
+    curtoken = get_token
+    params  = { 'hash': hash_content, 'description': "Sealed Log Message #{event.get('uuid')}", 'storage': storage }
+    headers = { 'Content-Type' => 'application/json', 'Authorization' => "Bearer #{curtoken}" }
+    request = Net::HTTP::Post.new(uri.path, initheader = headers)
+
+    request.body = params.to_json
+    response = https.request(request)
+
+    if response.code.to_i != 200
+        raise 'Service Error.'
+    end
+    if response.body.nil?
+        raise 'Response Body is nil.'
     end
 
     entity_id = response.body

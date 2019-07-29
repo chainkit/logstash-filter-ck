@@ -48,13 +48,13 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-password>> | <<string,string>> | nil
 | <<plugins-{type}s-{plugin}-authtoken>> | <<string,string>> | nil
 | <<plugins-{type}s-{plugin}-endpoint>> | <<string,string>> | https://api.chainkit.com
-| <<plugins-{type}s-{plugin}-storage>> | <<string,string>> | private
+| <<plugins-{type}s-{plugin}-storage>> | <<string,string>> | vmware
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
 filter plugins.
 
-We suggest you keep the storage as "private".
+We suggest you keep the storage as "vmware".
 
 Example:
 [source,ruby]
