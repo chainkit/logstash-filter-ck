@@ -9,21 +9,6 @@ class LogStash::Filters::CKVerify < LogStash::Filters::CK
   config_name "ckverify"
 
   public
-  def multi_filter(events)
-    if events.nil? || events.empty?
-      return events
-    end
-
-    result = []
-    events.each do |event|
-      result << event
-      filter(event){|new_event| result << new_event}
-    end
-
-    result
-  end # def multi_filter
-
-  public
   def multi_filter_experimental(events)
     if events.nil? || events.empty?
       return events

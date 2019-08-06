@@ -29,6 +29,9 @@ class LogStash::Filters::CK < LogStash::Filters::Base
   # The token
   config :authtoken, :validate => :string, :required => false, :default => nil
 
+  # Use experimental for multi_filter
+  config :experimental, :validate => :boolean, :required => false, :default => false
+
   # Expiry
   token_expires = Time.now
 
@@ -85,6 +88,25 @@ class LogStash::Filters::CK < LogStash::Filters::Base
 
   public
   def multi_filter(events)
+    if experimental
+      return multi_filter_experimental(events)
+    end
+
+    if events.nil? || events.empty?
+      return events
+    end
+
+    result = []
+    events.each do |event|
+      result << event
+      filter(event){|new_event| result << new_event}
+    end
+
+    result
+  end # def multi_filter
+
+  public
+  def multi_filter_experimental(events)
     if events.nil? || events.empty?
       return events
     end
@@ -128,7 +150,7 @@ class LogStash::Filters::CK < LogStash::Filters::Base
     end
 
     result
-  end # def multi_filter
+  end # def multi_filter_experimental
 
   public
   def filter(event)
