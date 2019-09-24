@@ -107,6 +107,7 @@ class LogStash::Filters::CK < LogStash::Filters::Base
 
   public
   def multi_filter_experimental(events)
+    warn """[DEPRECATED]: Old Multi-Filter API."""
     if events.nil? || events.empty?
       return events
     end
@@ -176,7 +177,9 @@ class LogStash::Filters::CK < LogStash::Filters::Base
         raise 'Response Body is nil.'
     end
 
-    entity_id = response.body
+    body_parsed = JSON.parse(response.body)
+    entity_id = body_parsed['assetId'].to_s
+
     event.set("hash", hash_content)
     event.set("entityid", entity_id)
 

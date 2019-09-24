@@ -10,6 +10,7 @@ class LogStash::Filters::CKVerify < LogStash::Filters::CK
 
   public
   def multi_filter_experimental(events)
+    warn """[DEPRECATED]: Old Multi-Filter API."""
     if events.nil? || events.empty?
       return events
     end
@@ -100,7 +101,9 @@ class LogStash::Filters::CKVerify < LogStash::Filters::CK
         raise 'Response Body is nil.'
     end
 
-    verified = response.body
+    body_parsed = JSON.parse(response.body)
+    verified = body_parsed['verified'].to_s
+
     event.set("verified", (verified == "true"))
 
     filter_matched(event)
