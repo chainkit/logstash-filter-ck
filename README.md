@@ -45,16 +45,16 @@ gem "logstash-filter-ck", :path => "/your-workspace/logstash-filter-ck"
 - Install plugin
 ```sh
 # Logstash 2.3 and higher
-bin/logstash-plugin install --no-verify
+bin/logstash-plugin install --no-verify /path/to/logstash-filter-ck.gem
 
 # Prior to Logstash 2.3
-bin/plugin install --no-verify
+bin/plugin install --no-verify /path/to/logstash-filter-ck.gem
 
 ```
 - Run Logstash with this plugin
 ```sh
 bin/logstash -e \
-'filter { ck { username => "user", password => "changeMe" } ckverify { username => "user", password => "changeMe" } }'
+'filter { ck { username => "user" password => "changeMe" } ckverify { username => "user" password => "changeMe" } }'
 ```
 At this point any modifications to the plugin code will be applied to this local
 Logstash setup. After modifying the plugin, simply rerun Logstash.
